@@ -1,0 +1,102 @@
+openapi: 3.0.0
+paths:
+  /test:
+    get:
+      summary: "商品情報取得"
+      #詳細説明
+      description: "productsテーブルに登録されている商品情報を全件取得する"
+      # content-typeの指定
+      produces: 
+      - "application/json"
+      # レスポンスに関する記述
+      responses:
+        #statusCode200の時
+        '200':
+          description: "成功"
+          # レスポンスのbodyについて記述する
+          content:
+            application/json:
+              schema:
+                # jsonの場合,だけ？objectを指定する
+                type: "object"
+                # bodyの中身(ダミー値でいい)
+                properties:
+                  id: 
+                    #データ型
+                    type: "integer"
+                    #ダミー値
+                    example: "1"
+                  name:
+                    type: "string"
+                    example: "hogehoge"
+  /tracking/{parcelId}/subscribe:
+    parameters:
+    - name: parcelId
+      in: path
+      required: true
+      description: The parcel identifier
+      schema:
+        $ref: '#/components/schemas/parcelId'
+    post:
+      summary: Subscribe to notifications about given parcel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                token:
+                  type: string
+              required:
+              - url
+              - token
+      responses:
+        '202':
+          description: 'Successfully subscribed to notifications about given parcel'
+          content:
+            text/plain:
+              examples:
+                ok:
+                  value: 'ok'
+      callbacks:
+        notification:
+          '{$request.body#/url}?token={$request.body#/token}':
+            post:
+              summary: 'Receive single notification about a parcel'
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/notification'
+              responses:
+                200:
+                  description: 'Notification successfully processed'
+                  content:
+                    text/plain:
+                      examples:
+                        ok:
+                          value: 'ok'
+components:
+  schemas:
+    parcelId:
+      type: string
+      pattern: '^[0-9]{16}$'
+    notification:
+      type: object
+      properties:
+        parcelId:
+          $ref: "#/components/schemas/parcelId"
+        status:
+          type: string
+          enum:
+          - pick-up
+          - in-transit
+          - delivered
+      required:
+      - parcelId
+      - status
